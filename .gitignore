@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.sqlite3
+*.db
+
+# Jupyter/VSCode
+.ipynb_checkpoints/
+.vscode/
+*.code-workspace
+*.nbconvert.ipynb
+
+# Data & Models
+/data/
+/models/
+/outputs/
+/metrics_tables/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.json
+*.log
+*.txt
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+*.bak
+*.tmp
+*.cache
+
+# Environment
+.env
+.env.*
+*.env
+*.venv
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ignore secrets and credentials
+secrets.*
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+
+# Ignore large files and figures
+/paper_figures/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# Ignore notebook outputs
+*.out
+*.bak
+
+# Ignore user-specific files
+*.swp
+*.swo
+*~
+
+# Allow README and configs
+!README.md
+!*.ipynb
+!nemesis.json
