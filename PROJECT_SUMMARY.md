@@ -1,3 +1,159 @@
+# Project Summary — Darknet Trade Message Classification (Nemesis)
+
+**Goal**: Build a reproducible pipeline to classify darknet marketplace listings into multiple categories, and compare:
+
+- **Baselines**: TF‑IDF + scikit‑learn models (fast, lightweight)
+- **Transformers**: fine-tuning with Hugging Face `Trainer` (stronger accuracy, heavier compute)
+
+This repo is organized as **a sequence of Jupyter notebooks**. The “source of truth” is the notebook code itself.
+
+---
+
+## Inputs and Outputs (high-level)
+
+### Primary input
+
+- `nemesis.json` — machine-readable pages with fields such as `title`, `url`, `text`, `timestamp` and category metadata used for labeling.
+
+### Key generated artifacts
+
+- `data/english_clean.csv` — cleaned dataset used by all training notebooks.
+- `models/` — scikit‑learn artifacts and baseline results.
+- `models/bert_models/` — Transformer fine-tuned model(s), tokenizer(s), label encoder, results JSON.
+- `outputs/` — model comparison tables, error analysis CSVs, paper-oriented outputs.
+- `metrics_tables/` — paper-ready tables (CSV/LaTeX/Excel) from comprehensive metrics notebook.
+
+> Important: these folders are created when notebooks run; they might not exist in a fresh workspace.
+
+---
+
+## Notebook Workflow (actual files in this repo)
+
+### 0) (Optional) `explore.ipynb`
+
+Exploratory notebook. It may assume a local folder `./textpages` (not included in this repo by default). Not required for the main pipeline starting from `nemesis.json`.
+
+---
+
+### 1) `labeling_and_preprocessing.ipynb`
+
+**Purpose**: Build a cleaned, labeled dataset from `nemesis.json`.
+
+**Core steps**:
+- Load `nemesis.json` into a DataFrame.
+- Build `combined_text` from listing content (title + description/content).
+- Apply text cleaning (`clean_text`): lowercase; remove URLs (including `.onion`), emails, price patterns, long digit sequences; normalize punctuation/whitespace.
+- Filter out very short texts (the notebook uses `min_length = 10`).
+- Feature engineering: `word_count`.
+
+**Outputs**:
+- `data/english_clean.csv`
+- `data/preprocessing_summary.txt`
+
+---
+
+### 2) `baseline_models.ipynb`
+
+**Purpose**: Train and evaluate classical ML baselines.
+
+**Inputs**:
+- `data/english_clean.csv`
+
+**Modeling choices (as implemented in the notebook)**:
+- Uses `X = df['clean_text'].values`.
+- Stratified split: train/val/test = 70/15/15.
+- TF‑IDF configuration:
+  - `ngram_range=(1, 2)`
+  - `max_features=10000`
+  - `min_df=2`, `max_df=0.95`
+  - `sublinear_tf=True`, `stop_words='english'`
+- Trains multiple models and an ensemble Voting classifier.
+
+**Outputs (under `models/`)**:
+- `tfidf_vectorizer.pkl`
+- `best_model_<name>.pkl`
+- `all_baseline_models.pkl`
+- `baseline_results.json`
+- `baseline_results_summary.csv`
+- `baseline_comparison.png`
+
+---
+
+### 3) `advanced_model_bert.ipynb`
+
+**Purpose**: Fine-tune a Transformer classifier using Hugging Face.
+
+**Inputs**:
+- `data/english_clean.csv`
+
+**Key implementation details**:
+- Label encoding:
+  - creates `label_encoded` via `LabelEncoder`
+  - saves encoder to `models/bert_models/label_encoder.pkl`
+- Text column selection:
+  - uses `combined_text` if available, else `clean_text`
+- Model selection:
+  - `MODEL_CHECKPOINTS = {'BERT': 'bert-base-uncased', 'RoBERTa': 'roberta-base', 'XLM-RoBERTa': 'xlm-roberta-base'}`
+  - default: `current_model_name = 'RoBERTa'`
+- Training:
+  - uses `TrainingArguments` + `Trainer`
+  - early stopping: `EarlyStoppingCallback(early_stopping_patience=2)`
+  - fp16 is enabled automatically if CUDA is available.
+
+**Outputs (under `models/bert_models/`)**:
+- `label_encoder.pkl`
+- `<model>_final/` (e.g., `roberta_final/`) — saved model + tokenizer
+- `<model>_results.json` (e.g., `roberta_results.json`) — validation/test metrics + config summary
+- `<model>_confusion_matrix.png`
+
+---
+
+### 4) `4_evaluation_and_error_analysis.ipynb`
+
+**Purpose**: Aggregate results across baselines + Transformers and generate error analysis.
+
+**Inputs**:
+- `models/baseline_results.json`
+- `models/bert_models/*_results.json` (if present)
+
+**Outputs (under `outputs/`)**:
+- `all_models_comparison.csv`
+- `misclassified_examples.csv`
+- `low_confidence_predictions.csv`
+- `top20_misclassified_for_paper.csv`
+- `top20_misclassified_latex.txt`
+
+---
+
+### 5) `5_paper_diagrams_and_visualizations.ipynb`
+
+**Purpose**: Create paper-style figures/diagrams (e.g., system architecture) using results from step (4).
+
+**Outputs (under `outputs/`)**:
+- `fig1_system_architecture.png`
+- (other figures depending on what cells you run)
+
+---
+
+### 6) `6_comprehensive_metrics_for_paper.ipynb`
+
+**Purpose**: Produce paper-ready tables (CSV + LaTeX) and consolidated metrics.
+
+**Outputs**:
+- Creates `metrics_tables/` in the repo root.
+- Writes tables such as:
+  - `table1_standard_metrics.{csv,tex}`
+  - `table2_advanced_metrics.{csv,tex}`
+  - `table3_confusion_stats.{csv,tex}`
+  - plus additional tables (per-class, significance tests) and summaries.
+
+---
+
+## Reproducibility notes
+
+- If you run only baselines, you can stop after `baseline_models.ipynb` and still run `4_evaluation_and_error_analysis.ipynb` (Transformer results will be missing).
+- If you fine-tune Transformers, expect significantly longer runtime and higher memory usage.
+- `explore.ipynb` may reference `./textpages` which is not part of the main `nemesis.json → english_clean.csv` pipeline.
 # 📊 Darknet Product Classification - Project Summary
 
 **Project**: Automatic Classification of Illicit Products from Darknet Marketplaces  
